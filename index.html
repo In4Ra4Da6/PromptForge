@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PromptForge">
+<title>PromptForge</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0c0e0f; --surface:#131618; --surface2:#1c2023; --surface3:#22272b;
+  --border:#2a2e32; --border-glow:#3d4a52;
+  --accent:#c8a96e; --accent-dim:rgba(200,169,110,0.13);
+  --accent2:#6eb8c8; --accent2-dim:rgba(110,184,200,0.12);
+  --text:#dde3e8; --text-muted:#5a6a75; --text-dim:#8a9aa5;
+  --success:#6ec89a; --danger:#e06e6e; --warning:#e0b86e;
+  --tag-bg:rgba(110,184,200,0.1);
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Mono',monospace;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:
+  radial-gradient(ellipse 80% 50% at 10% 0%,rgba(110,184,200,0.04) 0%,transparent 55%),
+  radial-gradient(ellipse 60% 60% at 90% 100%,rgba(200,169,110,0.05) 0%,transparent 55%),
+  repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(200,169,110,0.012) 40px),
+  repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(200,169,110,0.012) 40px);
+  pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 20px calc(80px + var(--safe-bottom))}
+
+/* ── HEADER ── */
+header{padding:calc(36px + var(--safe-top)) 0 28px;border-bottom:1px solid var(--border);margin-bottom:24px;animation:fadeDown .5s ease both}
+.header-top{display:flex;align-items:center;gap:16px;margin-bottom:14px}
+.logo-mark{width:44px;height:44px;border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--accent);letter-spacing:-1px;flex-shrink:0;position:relative}
+.logo-mark::after{content:'';position:absolute;inset:3px;border:1px solid rgba(200,169,110,0.2)}
+.header-text h1{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;letter-spacing:2px;line-height:1}
+.header-text h1 span{color:var(--accent);font-weight:600}
+.header-text p{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);margin-top:5px}
+
+/* API TOGGLE + SETTINGS */
+.header-controls{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.api-toggle{display:flex;border:1px solid var(--border);overflow:hidden}
+.api-toggle-btn{background:transparent;border:none;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;padding:7px 12px;cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.api-toggle-btn:first-child{border-right:1px solid var(--border)}
+.api-toggle-btn.active{background:var(--accent-dim);color:var(--accent);border-color:var(--accent)}
+.api-toggle-btn.active.gemini{background:rgba(66,133,244,0.12);color:#6ab0ff;border-color:rgba(106,176,255,0.4)}
+.api-toggle-btn.active.groq{background:rgba(249,115,22,0.12);color:#fb923c;border-color:rgba(251,146,60,0.4)}
+.api-toggle-btn .api-dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.6}
+.btn-settings{background:transparent;border:1px solid var(--border);color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;padding:7px 12px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-settings:hover{border-color:var(--border-glow);color:var(--text)}
+.btn-settings.open{border-color:var(--accent);color:var(--accent)}
+
+/* TOKEN STRIP */
+.token-strip{display:flex;gap:1px}
+.token-item{flex:1;padding:7px 12px;display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border)}
+.token-item:not(:last-child){border-right:none}
+.token-label{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);white-space:nowrap}
+.token-value{font-size:11px;color:var(--accent);font-weight:500;margin-left:auto}
+.token-cost{font-size:9px;color:var(--text-dim);margin-left:3px}
+
+/* ── SETTINGS PANEL ── */
+.settings-panel{background:var(--surface);border:1px solid var(--border);padding:20px;position:relative;margin-bottom:22px;display:none}
+.settings-panel.open{display:block;animation:fadeDown .25s ease both}
+.settings-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(200,169,110,.5),transparent)}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:700px){.settings-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:450px){.settings-grid{grid-template-columns:1fr}}
+.settings-group{}
+.settings-group-title{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.settings-group-title .key-dot{width:5px;height:5px;border-radius:50%;background:var(--text-muted);transition:all .3s}
+.settings-group-title .key-dot.ok{background:var(--success);box-shadow:0 0 5px rgba(110,200,154,.5)}
+.settings-group-title .key-dot.error{background:var(--danger)}
+.settings-group-title .key-status-label{color:var(--text-dim);font-size:8px;letter-spacing:1px;margin-left:auto}
+.key-row{display:flex;gap:7px;margin-bottom:7px}
+.key-input-wrap{flex:1;position:relative}
+input.api-key-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:9px 36px 9px 11px;outline:none;transition:border-color .2s,color .2s}
+input.api-key-input::placeholder{color:var(--text-muted);font-size:10px}
+input.api-key-input:focus{border-color:var(--border-glow)}
+input.api-key-input.has-key{color:var(--success);border-color:rgba(110,200,154,.3)}
+input.api-key-input.key-error{border-color:rgba(224,110,110,.4)}
+.btn-toggle-vis{position:absolute;right:9px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:3px;transition:color .2s}
+.btn-toggle-vis:hover{color:var(--text)}
+.btn-sm{background:transparent;font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;padding:0 12px;cursor:pointer;transition:all .2s;white-space:nowrap;border:1px solid var(--accent);color:var(--accent)}
+.btn-sm:hover{background:var(--accent);color:var(--bg)}
+.btn-sm.danger{border-color:rgba(224,110,110,.35);color:var(--danger);display:none;padding:0 10px}
+.btn-sm.danger:hover{background:rgba(224,110,110,.1)}
+.btn-sm.danger.visible{display:block}
+.key-hint{font-size:8px;color:var(--text-muted);line-height:1.6;margin-top:2px}
+.key-hint a{color:var(--accent2);text-decoration:none;border-bottom:1px solid rgba(110,184,200,.25)}
+.key-hint code{color:var(--accent);font-size:8px}
+
+/* ── MAIN GRID ── */
+.main-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;animation:fadeUp .6s .1s ease both}
+@media(max-width:700px){.main-grid{grid-template-columns:1fr}}
+
+/* ── PANELS ── */
+.panel{background:var(--surface);border:1px solid var(--border);padding:18px;position:relative}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent-dim),transparent)}
+.panel-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.panel-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── AI SELECTOR ── */
+.ai-selector-section{grid-column:1/-1}
+.ai-grid{display:flex;flex-wrap:wrap;gap:8px}
+.ai-card{border:1px solid var(--border);padding:10px 14px;cursor:pointer;transition:all .2s;user-select:none;display:flex;align-items:center;gap:8px;min-width:120px}
+.ai-card:hover{border-color:var(--border-glow);background:rgba(255,255,255,.015)}
+.ai-card.active{border-color:var(--accent);background:var(--accent-dim)}
+.ai-icon{font-size:16px;flex-shrink:0}
+.ai-info{flex:1}
+.ai-name{font-size:10px;font-weight:500;color:var(--text);letter-spacing:.3px}
+.ai-tip{font-size:8px;color:var(--text-muted);margin-top:2px;letter-spacing:.3px}
+
+/* ── TEMPLATES ── */
+.templates-row{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:7px;margin-bottom:2px}
+.tpl-chip{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);border:1px solid var(--border);padding:6px 10px;cursor:pointer;transition:all .2s;user-select:none}
+.tpl-chip:hover{border-color:var(--accent);color:var(--accent)}
+.tpl-chip:active{background:var(--accent-dim)}
+
+/* ── TOPIC ── */
+.topic-section{grid-column:1/-1}
+.topic-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.topic-header .panel-label{margin-bottom:0;flex:1}
+.suggest-badge{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent2);border:1px solid rgba(110,184,200,.3);padding:3px 8px;display:none;cursor:pointer;transition:all .2s}
+.suggest-badge:hover{background:var(--accent2-dim)}
+.suggest-badge.visible{display:inline}
+textarea.topic-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.7;padding:13px;resize:none;height:86px;outline:none;transition:border-color .2s}
+textarea.topic-input::placeholder{color:var(--text-muted)}
+textarea.topic-input:focus{border-color:var(--border-glow)}
+.tech-suggestions{margin-top:7px;display:none;flex-wrap:wrap;gap:5px}
+.tech-suggestions.visible{display:flex}
+.suggestion-chip{font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--accent);border:1px dashed rgba(200,169,110,.4);padding:3px 9px;cursor:pointer;transition:all .2s;background:var(--accent-dim)}
+.suggestion-chip:hover{border-style:solid}
+.suggestion-label{font-size:8px;color:var(--text-muted);letter-spacing:1px;align-self:center;margin-right:2px}
+
+/* ── TECNICHE ── */
+.techniques-section{grid-column:1/-1}
+.techniques-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:7px}
+.technique-card{border:1px solid var(--border);padding:10px 12px;cursor:pointer;transition:all .2s;position:relative;user-select:none}
+.technique-card:hover{border-color:var(--border-glow);background:rgba(255,255,255,.015)}
+.technique-card.active{border-color:var(--accent);background:var(--accent-dim)}
+.technique-card.active .tc-check{opacity:1}
+.technique-card.suggested{border-color:rgba(110,184,200,.4);background:rgba(110,184,200,.05)}
+.tc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:5px}
+.tc-check{font-size:9px;color:var(--accent);opacity:0;transition:opacity .2s;flex-shrink:0;margin-top:1px}
+.tc-name{font-size:11px;font-weight:500;color:var(--text);letter-spacing:.3px;flex:1}
+.tc-desc{font-size:9px;color:var(--text-muted);line-height:1.5;margin-top:3px}
+.tc-expand{background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;padding:0 2px;transition:color .2s;flex-shrink:0;line-height:1}
+.tc-expand:hover{color:var(--accent2)}
+.tc-ai-badge{font-size:7px;letter-spacing:1px;color:var(--accent2);border:1px solid rgba(110,184,200,.25);padding:1px 5px;margin-top:4px;display:inline-block}
+.tc-example{display:none;margin-top:9px;padding:9px;background:var(--surface2);border-left:2px solid var(--accent2);font-size:9px;line-height:1.7;color:var(--text-dim)}
+.tc-example.open{display:block;animation:fadeIn .2s ease}
+.tc-example strong{color:var(--accent2);display:block;margin-bottom:3px;font-size:8px;letter-spacing:1px;text-transform:uppercase}
+
+/* ── OPTIONS ── */
+.options-section{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:600px){.options-section{grid-template-columns:1fr 1fr}}
+@media(max-width:380px){.options-section{grid-template-columns:1fr}}
+.option-group label{display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px}
+select.opt-select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:9px 12px;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a6a75'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+select.opt-select:focus{border-color:var(--border-glow)}
+
+/* ── COST PREVIEW ── */
+.cost-preview{grid-column:1/-1;background:var(--surface2);border:1px solid var(--border);padding:9px 14px;display:flex;align-items:center;gap:10px;font-size:9px;color:var(--text-muted);letter-spacing:1px}
+.cost-label{text-transform:uppercase;letter-spacing:2px}
+.cost-val{color:var(--accent);font-size:10px;margin-left:auto}
+.cost-note{color:var(--text-muted);font-size:8px}
+
+/* ── GENERATE ── */
+.generate-section{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+.btn-generate{background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:13px 38px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+.btn-generate::before{content:'';position:absolute;inset:0;background:var(--accent);transform:translateX(-100%);transition:transform .3s ease;z-index:0}
+.btn-generate:hover::before{transform:translateX(0)}
+.btn-generate:hover{color:var(--bg)}
+.btn-generate span{position:relative;z-index:1}
+.btn-generate:disabled{opacity:.4;cursor:not-allowed}
+.btn-generate:disabled::before{display:none}
+.btn-variants{background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:13px 16px;cursor:pointer;transition:all .2s}
+.btn-variants:hover{border-color:var(--accent2);color:var(--accent2)}
+.btn-variants:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── OUTPUT ── */
+.output-section{grid-column:1/-1;display:none}
+.output-section.visible{display:block;animation:fadeUp .4s ease both}
+.output-tabs{display:none;gap:1px;margin-bottom:0}
+.output-tabs.visible{display:flex}
+.output-tab{flex:1;background:var(--surface2);border:1px solid var(--border);border-bottom:none;padding:8px 14px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);cursor:pointer;transition:all .2s;text-align:center}
+.output-tab.active{background:var(--surface);color:var(--accent);border-color:var(--accent);border-bottom:1px solid var(--surface)}
+.output-panel{background:var(--surface);border:1px solid var(--border)}
+.output-header{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface2);flex-wrap:wrap}
+.output-title{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);flex:1;min-width:60px}
+.lang-badge{font-size:8px;letter-spacing:2px;text-transform:uppercase;padding:3px 7px;border:1px solid}
+.lang-badge.it{color:#6ec89a;border-color:rgba(110,200,154,.3)}
+.lang-badge.en{color:var(--accent2);border-color:rgba(110,184,200,.3)}
+.btn-copy{background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:6px 14px;cursor:pointer;transition:all .2s}
+.btn-copy:hover{border-color:var(--accent);color:var(--accent)}
+.btn-copy.copied{color:var(--success);border-color:var(--success)}
+.btn-save-prompt{background:transparent;border:1px solid rgba(110,184,200,.4);color:var(--accent2);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:6px 12px;cursor:pointer;transition:all .2s}
+.btn-save-prompt:hover{background:var(--accent2-dim);border-color:var(--accent2)}
+.output-content{padding:18px;min-height:90px}
+.loader{display:none;align-items:center;gap:12px;padding:28px 0;justify-content:center}
+.loader.active{display:flex}
+.loader-dots{display:flex;gap:5px}
+.loader-dot{width:5px;height:5px;background:var(--accent);border-radius:50%;animation:pulse 1.2s ease-in-out infinite}
+.loader-dot:nth-child(2){animation-delay:.2s}
+.loader-dot:nth-child(3){animation-delay:.4s}
+.loader-text{font-size:9px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase}
+.prompt-result{font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.9;color:var(--text);white-space:pre-wrap;word-break:break-word}
+.prompt-result .xml-tag{color:var(--accent2)}
+
+/* ADAPT BAR */
+.adapt-bar{padding:10px 14px;border-top:1px solid var(--border);background:var(--surface2);display:none}
+.adapt-bar.visible{display:block}
+.adapt-bar-label{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
+.adapt-buttons{display:flex;flex-wrap:wrap;gap:6px}
+.btn-adapt{background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;padding:5px 12px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px}
+.btn-adapt:hover{border-color:var(--accent);color:var(--accent)}
+.btn-adapt.adapting{border-color:var(--accent2);color:var(--accent2);opacity:.7;cursor:wait}
+
+/* OUTPUT FOOTER */
+.output-footer{padding:10px 14px;border-top:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.techniques-used{display:flex;flex-wrap:wrap;gap:4px;flex:1}
+.tech-tag{font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--accent2);background:var(--tag-bg);border:1px solid rgba(110,184,200,.2);padding:2px 6px}
+.rating-row{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--text-muted);letter-spacing:1px}
+.btn-rate{background:none;border:1px solid var(--border);font-size:12px;cursor:pointer;padding:3px 7px;transition:all .2s;line-height:1}
+.btn-rate:hover{border-color:var(--border-glow);background:rgba(255,255,255,.03)}
+.btn-rate.rated-up{border-color:var(--success);background:rgba(110,200,154,.1)}
+.btn-rate.rated-down{border-color:var(--danger);background:rgba(224,110,110,.1)}
+
+/* ── CHAT INTEGRATA ── */
+.chat-section{grid-column:1/-1;display:none}
+.chat-section.visible{display:block;animation:fadeUp .3s ease both}
+.chat-panel{background:var(--surface);border:1px solid var(--border)}
+.chat-header{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface2)}
+.chat-title{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);flex:1}
+.chat-ai-badge{font-size:8px;letter-spacing:2px;text-transform:uppercase;padding:3px 8px;border:1px solid var(--accent);color:var(--accent)}
+.btn-chat-toggle{background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;padding:4px 10px;cursor:pointer;transition:all .2s}
+.btn-chat-toggle:hover{border-color:var(--accent2);color:var(--accent2)}
+.chat-messages{max-height:400px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.chat-msg{display:flex;flex-direction:column;gap:4px;animation:fadeUp .25s ease both}
+.chat-msg.user{align-items:flex-end}
+.chat-msg.assistant{align-items:flex-start}
+.msg-bubble{max-width:85%;padding:10px 14px;font-size:12px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.chat-msg.user .msg-bubble{background:var(--accent-dim);border:1px solid rgba(200,169,110,.25);color:var(--text)}
+.chat-msg.assistant .msg-bubble{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
+.msg-meta{font-size:8px;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase}
+.chat-msg.assistant .msg-bubble .xml-tag{color:var(--accent2)}
+.chat-empty{padding:32px 20px;text-align:center;font-size:10px;color:var(--text-muted);letter-spacing:1px;line-height:1.8}
+.chat-input-row{padding:12px 14px;border-top:1px solid var(--border);display:flex;gap:8px;background:var(--surface2)}
+.chat-input{flex:1;background:var(--surface3);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:12px;padding:10px 12px;outline:none;resize:none;height:44px;transition:border-color .2s;line-height:1.4}
+.chat-input:focus{border-color:var(--border-glow)}
+.chat-input::placeholder{color:var(--text-muted)}
+.btn-chat-send{background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:0 16px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-chat-send:hover{background:var(--accent);color:var(--bg)}
+.btn-chat-send:disabled{opacity:.4;cursor:not-allowed}
+.chat-prompt-bar{padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(200,169,110,.05);display:none}
+.chat-prompt-bar.visible{display:block}
+.chat-prompt-label{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:5px}
+.chat-prompt-preview{font-size:10px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.3px}
+.use-prompt-btn{display:inline-block;margin-top:5px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent2);border:1px solid rgba(110,184,200,.3);padding:3px 8px;cursor:pointer;transition:all .2s}
+.use-prompt-btn:hover{background:var(--accent2-dim)}
+
+/* ── CRONOLOGIA ── */
+.history-section{grid-column:1/-1;display:none}
+.history-section.visible{display:block;animation:fadeUp .3s ease both}
+.history-panel{background:var(--surface);border:1px solid var(--border)}
+.history-header{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface2)}
+.history-title{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);flex:1}
+.btn-clear-history{background:none;border:1px solid rgba(224,110,110,.25);color:var(--danger);font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;cursor:pointer;transition:all .2s}
+.btn-clear-history:hover{background:rgba(224,110,110,.08)}
+.history-list{max-height:300px;overflow-y:auto}
+.history-item{padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;position:relative}
+.history-item:last-child{border-bottom:none}
+.history-item:hover{background:rgba(255,255,255,.02)}
+.history-item-header{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+.history-item-name{font-size:11px;color:var(--text);font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.history-item-date{font-size:8px;color:var(--text-muted);letter-spacing:1px;white-space:nowrap}
+.history-item-preview{font-size:9px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.history-item-meta{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
+.history-meta-tag{font-size:8px;letter-spacing:1px;color:var(--text-muted);border:1px solid var(--border);padding:1px 6px}
+.history-item-actions{display:flex;gap:5px;margin-top:8px;opacity:0;transition:opacity .2s}
+.history-item:hover .history-item-actions{opacity:1}
+@media(max-width:500px){.history-item-actions{opacity:1}}
+.btn-hist-action{background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;padding:3px 8px;cursor:pointer;transition:all .2s}
+.btn-hist-action:hover{border-color:var(--accent);color:var(--accent)}
+.btn-hist-action.load:hover{border-color:var(--accent2);color:var(--accent2)}
+.history-empty{padding:28px 20px;text-align:center;font-size:10px;color:var(--text-muted);letter-spacing:1px}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex;animation:fadeIn .2s ease}
+.modal{background:var(--surface);border:1px solid var(--border);padding:22px;width:100%;max-width:400px;position:relative;animation:slideUp .25s ease}
+.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.modal-title{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px}
+.modal input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;padding:11px 12px;outline:none;margin-bottom:12px;transition:border-color .2s}
+.modal input:focus{border-color:var(--border-glow)}
+.modal input::placeholder{color:var(--text-muted)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+.btn-modal{background:transparent;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:8px 16px;cursor:pointer;transition:all .2s;border:1px solid var(--border);color:var(--text-dim)}
+.btn-modal:hover{border-color:var(--border-glow);color:var(--text)}
+.btn-modal.primary{border-color:var(--accent);color:var(--accent)}
+.btn-modal.primary:hover{background:var(--accent);color:var(--bg)}
+
+/* ── INFO STRIP ── */
+.info-strip{grid-column:1/-1;display:flex;gap:1px;margin-top:4px}
+.info-item{flex:1;background:var(--surface2);border:1px solid var(--border);padding:8px 11px;font-size:9px;color:var(--text-muted);line-height:1.5}
+.info-item strong{display:block;color:var(--accent);letter-spacing:2px;text-transform:uppercase;font-size:8px;margin-bottom:2px}
+@media(max-width:600px){.info-strip{flex-wrap:wrap}.info-item{min-width:calc(50% - 1px)}}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:calc(24px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(14px);background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1.5px;padding:9px 18px;opacity:0;transition:all .3s ease;pointer-events:none;z-index:999;white-space:nowrap;max-width:calc(100vw - 40px);text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{border-color:rgba(110,200,154,.5);color:var(--success)}
+#toast.err{border-color:rgba(224,110,110,.5);color:var(--danger)}
+#toast.warn{border-color:rgba(224,184,110,.5);color:var(--warning)}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.1)}}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border)}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<header>
+  <div class="header-top">
+    <div class="logo-mark">PF</div>
+    <div class="header-text">
+      <h1>Prompt<span>Forge</span></h1>
+      <p>Generatore di prompt · Multi-AI</p>
+    </div>
+    <div class="header-controls">
+      <!-- API TOGGLE -->
+      <div class="api-toggle">
+        <button class="api-toggle-btn active" id="toggle-claude" onclick="switchActiveAPI('claude')">
+          <span class="api-dot"></span> Claude
+        </button>
+        <button class="api-toggle-btn gemini" id="toggle-gemini" onclick="switchActiveAPI('gemini')">
+          <span class="api-dot"></span> Gemini
+        </button>
+        <button class="api-toggle-btn groq" id="toggle-groq" onclick="switchActiveAPI('groq')">
+          <span class="api-dot"></span> Groq
+        </button>
+      </div>
+      <button class="btn-settings" id="btn-settings" onclick="toggleSettings()">⚙ Chiavi</button>
+    </div>
+  </div>
+  <div class="token-strip">
+    <div class="token-item"><span class="token-label">Sessione</span><span class="token-value" id="tok-session">0</span><span class="token-cost" id="tok-session-cost">$0.0000</span></div>
+    <div class="token-item"><span class="token-label">Totale storico</span><span class="token-value" id="tok-total">0</span><span class="token-cost" id="tok-total-cost">$0.0000</span></div>
+    <div class="token-item"><span class="token-label">Generazioni</span><span class="token-value" id="tok-count">0</span></div>
+  </div>
+</header>
+
+<!-- SETTINGS PANEL -->
+<div class="settings-panel" id="settings-panel">
+  <div class="settings-grid">
+    <!-- CLAUDE -->
+    <div class="settings-group">
+      <div class="settings-group-title">
+        🟠 Claude (Anthropic)
+        <span class="key-dot" id="claude-dot"></span>
+        <span class="key-status-label" id="claude-status">Non configurato</span>
+      </div>
+      <div class="key-row">
+        <div class="key-input-wrap">
+          <input type="password" class="api-key-input" id="claude-key-input" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false"/>
+          <button class="btn-toggle-vis" onclick="toggleVis('claude-key-input')">👁</button>
+        </div>
+        <button class="btn-sm" onclick="saveKey('claude')">Salva</button>
+        <button class="btn-sm danger" id="claude-forget" onclick="forgetKey('claude')">✕</button>
+      </div>
+      <div class="key-hint">~$0.006/gen · <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a> · <code>sk-ant-...</code></div>
+    </div>
+    <!-- GEMINI -->
+    <div class="settings-group">
+      <div class="settings-group-title">
+        🔵 Gemini (Google)
+        <span class="key-dot" id="gemini-dot"></span>
+        <span class="key-status-label" id="gemini-status">Non configurato</span>
+      </div>
+      <div class="key-row">
+        <div class="key-input-wrap">
+          <input type="password" class="api-key-input" id="gemini-key-input" placeholder="AIza..." autocomplete="off" spellcheck="false"/>
+          <button class="btn-toggle-vis" onclick="toggleVis('gemini-key-input')">👁</button>
+        </div>
+        <button class="btn-sm" onclick="saveKey('gemini')">Salva</button>
+        <button class="btn-sm danger" id="gemini-forget" onclick="forgetKey('gemini')">✕</button>
+      </div>
+      <div class="key-hint">Gratis* · <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a> · <code>AIza...</code></div>
+    </div>
+    <!-- GROQ -->
+    <div class="settings-group">
+      <div class="settings-group-title">
+        ⚡ Groq — Gratis
+        <span class="key-dot" id="groq-dot"></span>
+        <span class="key-status-label" id="groq-status">Non configurato</span>
+      </div>
+      <div class="key-row">
+        <div class="key-input-wrap">
+          <input type="password" class="api-key-input" id="groq-key-input" placeholder="gsk_..." autocomplete="off" spellcheck="false"/>
+          <button class="btn-toggle-vis" onclick="toggleVis('groq-key-input')">👁</button>
+        </div>
+        <button class="btn-sm" onclick="saveKey('groq')">Salva</button>
+        <button class="btn-sm danger" id="groq-forget" onclick="forgetKey('groq')">✕</button>
+      </div>
+      <div class="key-hint">Gratis · nessuna carta · <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a> · <code>gsk_...</code></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="main-grid">
+
+  <!-- AI SELECTOR -->
+  <div class="panel ai-selector-section">
+    <div class="panel-label">00 · AI di destinazione</div>
+    <div class="ai-grid" id="ai-grid"></div>
+  </div>
+
+  <!-- TEMPLATES -->
+  <div class="templates-row">
+    <div class="tpl-chip" onclick="setTemplate('analisi')">📊 Analisi</div>
+    <div class="tpl-chip" onclick="setTemplate('email')">✉️ Email</div>
+    <div class="tpl-chip" onclick="setTemplate('codice')">💻 Codice</div>
+    <div class="tpl-chip" onclick="setTemplate('ricerca')">🔍 Ricerca</div>
+    <div class="tpl-chip" onclick="setTemplate('riassunto')">📝 Riassunto</div>
+    <div class="tpl-chip" onclick="setTemplate('creativita')">✨ Creativo</div>
+    <div class="tpl-chip" onclick="setTemplate('brainstorm')">💡 Brainstorm</div>
+    <div class="tpl-chip" onclick="setTemplate('musica')">🎵 Musica (Suno)</div>
+  </div>
+
+  <!-- TOPIC -->
+  <div class="panel topic-section">
+    <div class="topic-header">
+      <div class="panel-label">01 · Obiettivo</div>
+      <span class="suggest-badge" id="suggest-badge" onclick="applySuggestions()">✦ Applica suggeriti</span>
+    </div>
+    <textarea class="topic-input" id="topic-input" placeholder="Descrivi cosa vuoi ottenere..."></textarea>
+    <div class="tech-suggestions" id="tech-suggestions"><span class="suggestion-label">Suggeriti:</span></div>
+  </div>
+
+  <!-- TECNICHE -->
+  <div class="panel techniques-section">
+    <div class="panel-label">02 · Tecniche <span style="font-size:8px;color:var(--accent2);margin-left:4px;letter-spacing:1px">auto-selezionate per AI</span></div>
+    <div class="techniques-grid" id="techniques-grid"></div>
+  </div>
+
+  <!-- OPTIONS -->
+  <div class="options-section">
+    <div class="option-group"><label>Tono</label>
+      <select class="opt-select" id="opt-tone">
+        <option value="professionale">Professionale</option>
+        <option value="analitico">Analitico</option>
+        <option value="creativo">Creativo</option>
+        <option value="conciso">Conciso</option>
+        <option value="didattico">Didattico</option>
+      </select>
+    </div>
+    <div class="option-group"><label>Lunghezza risposta</label>
+      <select class="opt-select" id="opt-length">
+        <option value="breve">Breve</option>
+        <option value="media" selected>Media</option>
+        <option value="dettagliata">Dettagliata</option>
+        <option value="step-by-step">Step-by-step</option>
+      </select>
+    </div>
+    <div class="option-group"><label>Lingua prompt</label>
+      <select class="opt-select" id="opt-lang">
+        <option value="auto">Auto</option>
+        <option value="italiano">Italiano</option>
+        <option value="inglese">Inglese</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- COST PREVIEW -->
+  <div class="cost-preview">
+    <span class="cost-label">Stima costo</span>
+    <span class="cost-note" id="cost-note">~800 token · claude-sonnet-4</span>
+    <span class="cost-val" id="cost-preview-val">~$0.0060</span>
+  </div>
+
+  <!-- GENERA -->
+  <div class="generate-section">
+    <button class="btn-generate" id="btn-generate" onclick="generatePrompt(false)"><span>⚡ Genera Prompt</span></button>
+    <button class="btn-variants" id="btn-variants" onclick="generatePrompt(true)">⚡⚡ 2 Varianti</button>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="output-section" id="output-section">
+    <div class="output-tabs" id="output-tabs">
+      <div class="output-tab active" onclick="switchTab(0)">Variante A</div>
+      <div class="output-tab" onclick="switchTab(1)">Variante B</div>
+    </div>
+    <div class="output-panel">
+      <div class="output-header">
+        <span class="output-title">Prompt generato</span>
+        <span class="lang-badge" id="lang-badge" style="display:none"></span>
+        <button class="btn-save-prompt" onclick="openSaveModal()">Salva</button>
+        <button class="btn-copy" id="btn-copy" onclick="copyPrompt()">Copia</button>
+      </div>
+      <div class="output-content">
+        <div class="loader" id="loader"><div class="loader-dots"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div><span class="loader-text">Generazione in corso...</span></div>
+        <div class="prompt-result" id="prompt-result"></div>
+      </div>
+      <!-- ADAPT BAR -->
+      <div class="adapt-bar" id="adapt-bar">
+        <div class="adapt-bar-label">Adatta per un'altra AI</div>
+        <div class="adapt-buttons" id="adapt-buttons"></div>
+      </div>
+      <div class="output-footer" id="output-footer" style="display:none">
+        <div class="techniques-used" id="techniques-used"></div>
+        <div class="rating-row">
+          <span>Utile?</span>
+          <button class="btn-rate" id="btn-up" onclick="ratePrompt('up')">👍</button>
+          <button class="btn-rate" id="btn-down" onclick="ratePrompt('down')">👎</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT INTEGRATA -->
+  <div class="chat-section" id="chat-section">
+    <div class="chat-panel">
+      <div class="chat-header">
+        <span class="chat-title">💬 Testa il prompt su Claude</span>
+        <span class="chat-ai-badge">Claude API</span>
+        <button class="btn-chat-toggle" onclick="clearChat()">Nuova chat</button>
+      </div>
+      <div class="chat-prompt-bar" id="chat-prompt-bar">
+        <div class="chat-prompt-label">Prompt caricato</div>
+        <div class="chat-prompt-preview" id="chat-prompt-preview"></div>
+        <span class="use-prompt-btn" onclick="usePromptInChat()">Usa come messaggio →</span>
+      </div>
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-empty">Scrivi un messaggio o usa il prompt generato per testarlo qui direttamente.</div>
+      </div>
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="chat-input" placeholder="Scrivi un messaggio..." rows="1"></textarea>
+        <button class="btn-chat-send" id="btn-chat-send" onclick="sendChat()">Invia</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CRONOLOGIA -->
+  <div class="history-section" id="history-section">
+    <div class="history-panel">
+      <div class="history-header">
+        <span class="history-title">📁 Prompt salvati</span>
+        <button class="btn-clear-history" onclick="clearHistory()">Svuota</button>
+      </div>
+      <div class="history-list" id="history-list"></div>
+    </div>
+  </div>
+
+  <!-- INFO STRIP -->
+  <div class="info-strip">
+    <div class="info-item"><strong>Multi-AI</strong>Ottimizzato per 7 AI diverse</div>
+    <div class="info-item"><strong>Auto-tech</strong>Tecniche selezionate automaticamente</div>
+    <div class="info-item"><strong>Test live</strong>Prova il prompt nella chat integrata</div>
+    <div class="info-item"><strong>Adatta</strong>Converti il prompt per qualsiasi AI</div>
+  </div>
+
+</div><!-- /main-grid -->
+</div><!-- /app -->
+
+<!-- SAVE MODAL -->
+<div class="modal-overlay" id="save-modal">
+  <div class="modal">
+    <div class="modal-title">Salva prompt</div>
+    <input type="text" id="save-name-input" placeholder="Nome del prompt..." maxlength="60"/>
+    <div class="modal-actions">
+      <button class="btn-modal" onclick="closeSaveModal()">Annulla</button>
+      <button class="btn-modal primary" onclick="confirmSave()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// DATI AI
+// ═══════════════════════════════════════════════════
+const AI_LIST = [
+  {
+    id:'claude', name:'Claude', icon:'🟠',
+    tip:'XML · Ruoli · Istruzioni esplicite',
+    bestTechs:['explicit','xml_tags','role','context','success'],
+    systemNote:'Questo prompt è ottimizzato per Claude (Anthropic). Usa tag XML, ruoli ben definiti e istruzioni esplicite. Claude risponde meglio con struttura chiara e criteri di successo espliciti.',
+    langPref:'it_or_en'
+  },
+  {
+    id:'chatgpt', name:'ChatGPT', icon:'🟢',
+    tip:'Struttura numerata · Diretto',
+    bestTechs:['explicit','context','cot','format','proactive'],
+    systemNote:'Questo prompt è ottimizzato per ChatGPT (OpenAI). Evita tag XML complessi, preferisci struttura numerata e istruzioni dirette. ChatGPT risponde bene a prompt concisi con obiettivo chiaro in apertura.',
+    langPref:'en'
+  },
+  {
+    id:'gemini', name:'Gemini', icon:'🔵',
+    tip:'Contesto ricco · Domande aperte',
+    bestTechs:['context','explicit','examples','cot'],
+    systemNote:"Questo prompt è ottimizzato per Gemini (Google). Fornisci contesto ricco e dettagliato. Gemini risponde meglio a prompt che spiegano il perché e includono esempi concreti. Evita strutture troppo rigide.",
+    langPref:'en'
+  },
+  {
+    id:'perplexity', name:'Perplexity', icon:'🟣',
+    tip:'Domande precise · Richiedi fonti',
+    bestTechs:['explicit','success','context'],
+    systemNote:"Questo prompt è ottimizzato per Perplexity AI. Perplexity è specializzato nella ricerca web. Formula domande precise, richiedi esplicitamente fonti verificate e date recenti. Specifica se vuoi un confronto tra fonti.",
+    langPref:'en'
+  },
+  {
+    id:'copilot', name:'Copilot', icon:'⬛',
+    tip:'Contesto Office · Task lavorativi',
+    bestTechs:['explicit','role','context','format'],
+    systemNote:"Questo prompt è ottimizzato per Microsoft Copilot. Copilot funziona meglio con contesto lavorativo/Office specifico. Fai riferimento a documenti, email o meeting quando pertinente. Struttura l'output per uso professionale.",
+    langPref:'it_or_en'
+  },
+  {
+    id:'notebooklm', name:'NotebookLM', icon:'📓',
+    tip:'Basato su documenti caricati',
+    bestTechs:['explicit','xml_tags','success','format'],
+    systemNote:"Questo prompt è ottimizzato per NotebookLM (Google). NotebookLM lavora SOLO sui documenti che hai caricato. Il prompt deve fare riferimento esplicito al materiale caricato. Chiedi analisi, connessioni e sintesi basate sulle fonti.",
+    langPref:'it_or_en'
+  },
+  {
+    id:'suno', name:'Suno', icon:'🎵',
+    tip:'Sintassi speciale per musica',
+    bestTechs:['explicit','examples','format'],
+    systemNote:"Questo prompt è ottimizzato per Suno AI (generazione musicale). Suno usa una sintassi specifica: genere musicale, BPM, mood, strumenti, struttura canzone (verso/ritornello), stile vocale. Il prompt generato seguirà questo formato.",
+    langPref:'en'
+  }
+];
+
+// ═══════════════════════════════════════════════════
+// TECNICHE
+// ═══════════════════════════════════════════════════
+const TECHNIQUES = [
+  {id:'explicit', name:'Istruzioni esplicite', alwaysOn:true,
+    desc:"Specifica esattamente l'output desiderato.",
+    example:"Invece di 'scrivi un'email' → 'Scrivi un'email di 150 parole, tono professionale, con oggetto incluso, senza emoji.'",
+    aiNote:{chatgpt:'Fondamentale per ChatGPT',gemini:'Usa un tono più conversazionale',suno:'Specifica genere e BPM'}},
+  {id:'context', name:'Contesto & motivazione', alwaysOn:false,
+    desc:'Spiega il perché per risposte più mirate.',
+    example:"'Sono un PM che presenta al CEO. Serve un riassunto executive di 3 punti che giustifichi €50k di investimento.'",
+    aiNote:{gemini:'Gemini ama il contesto dettagliato',perplexity:'Specifica il periodo temporale'}},
+  {id:'xml_tags', name:'Tag XML', alwaysOn:false,
+    desc:'Struttura con <tag> per organizzare input/output.',
+    example:"<obiettivo>Analizza questo testo</obiettivo>\n<testo>{{contenuto}}</testo>\n<output>Solo JSON: sentiment, temi, keywords</output>",
+    aiNote:{claude:'Tecnica nativa di Claude',chatgpt:'Usa invece liste numerate',gemini:'Preferisci testo libero'}},
+  {id:'role', name:'Ruolo esperto', alwaysOn:false,
+    desc:'Assegna un ruolo esperto per output specializzati.',
+    example:"'Sei un avvocato specializzato in diritto del lavoro italiano con 20 anni di esperienza. Cita sempre gli articoli di legge.'",
+    aiNote:{claude:'Molto efficace su Claude',chatgpt:'Usa "Act as" in inglese'}},
+  {id:'cot', name:'Chain-of-Thought', alwaysOn:false,
+    desc:'Chiedi ragionamento passo-passo prima della risposta.',
+    example:"'Prima ragiona nel blocco <thinking>, poi fornisci la risposta in <answer>. Non saltare passaggi logici.'",
+    aiNote:{chatgpt:'Molto efficace — usa "Let\'s think step by step"',gemini:'Funziona bene con domande complesse'}},
+  {id:'format', name:'Controllo formato', alwaysOn:false,
+    desc:'Specifica il formato: prosa fluida, no bullet eccessivi.',
+    example:"'Rispondi in prosa continua, senza elenchi puntati. Max 3 paragrafi. Ogni paragrafo inizia con una frase topic.'",
+    aiNote:{copilot:'Specifica formato Office (tabella, slide, email)',notebooklm:'Chiedi sezioni specifiche'}},
+  {id:'examples', name:'Esempi (Few-shot)', alwaysOn:false,
+    desc:'Includi esempi positivi/negativi per guidare.',
+    example:"'Esempio corretto: [input] → [output atteso]\nEsempio errato: [output da evitare]\nOra analizza: {{tuo input}}'",
+    aiNote:{gemini:'Gemini impara bene dagli esempi',suno:'Cita artisti di riferimento'}},
+  {id:'success', name:'Criteri di successo', alwaysOn:false,
+    desc:'Definisci cosa è una risposta ottima.',
+    example:"'La risposta è ottima se: 1) risponde in ≤3 frasi, 2) cita almeno una fonte, 3) suggerisce un passo successivo.'",
+    aiNote:{perplexity:'Specifica: "includi URL delle fonti"',notebooklm:'Richiedi citazione diretta dal documento'}},
+  {id:'proactive', name:'Azione proattiva', alwaysOn:false,
+    desc:'Chiedi implementazione diretta, non solo suggerimenti.',
+    example:"'Non dirmi cosa fare: fallo. Scrivi il codice completo. Se mancano info, assumi e specifica le assunzioni.'",
+    aiNote:{chatgpt:'Molto efficace — aggiungi "Just do it, don\'t explain"',copilot:'Chiedi output in formato file Office'}},
+  {id:'lang_note', name:'Istruzione lingua', alwaysOn:false,
+    desc:"Il prompt può essere in inglese ma la risposta sarà in italiano.",
+    example:"Utile quando il prompt in inglese dà risultati migliori. Si aggiunge automaticamente 'Respond in Italian.' alla fine.",
+    aiNote:{chatgpt:'Funziona perfettamente',gemini:'Aggiungi anche "in italiano" nell\'obiettivo'}}
+];
+
+// ═══════════════════════════════════════════════════
+// KEYWORD → TECNICHE SUGGERITE
+// ═══════════════════════════════════════════════════
+const KEYWORD_SUGGESTIONS = {
+  'codice|bug|funzione|script|programma|react|python|javascript|css|html|api|debug':['xml_tags','cot','proactive','success'],
+  'email|messaggio|lettera|comunicazione|scrivere|newsletter':['role','format','examples','context'],
+  'analisi|dati|dataset|report|statistica|excel|grafico|kpi':['xml_tags','cot','format','success'],
+  'ricerca|studio|approfondimento|confronto|fonti|articolo':['cot','examples','success','context'],
+  'riassunto|sintesi|punti chiave|estratto|summary':['xml_tags','format','success'],
+  'creativo|storia|racconto|poesia|narrativa|fantasia':['role','format','examples'],
+  'brainstorm|idee|innovazione|creatività|spunti|inventare':['cot','proactive','context'],
+  'traduzione|tradurre|lingua|translate':['examples','format','lang_note'],
+  'musica|canzone|suno|bpm|genere musicale|strumenti':['explicit','examples','format'],
+  'documento|analizza questo|notebook|fonte|caricato':['xml_tags','success','format'],
+  'presentazione|slide|powerpoint|deck':['format','success','context','role'],
+};
+
+const TEMPLATES = {
+  analisi:"Voglio analizzare i dati di vendita del Q3 per identificare trend, anomalie e opportunità di crescita. Dataset con colonne: data, prodotto, regione, ricavi, unità vendute.",
+  email:"Devo scrivere un'email professionale al team per comunicare un cambio di strategia, tono motivante ma chiaro sulle nuove priorità.",
+  codice:"Ho un bug in un componente React che causa un re-render infinito. Usa useEffect con una dipendenza che si aggiorna ad ogni render.",
+  ricerca:"Ricerca approfondita sulle migliori pratiche di prompt engineering per LLM nel 2025, confrontando approcci con fonti verificate e recenti.",
+  riassunto:"Devo riassumere un lungo documento tecnico estraendo punti chiave, decisioni strategiche e KPI più importanti.",
+  creativita:"Voglio scrivere un racconto breve ambientato in una città futuristica dove la memoria umana può essere salvata e condivisa digitalmente.",
+  brainstorm:"Trovare idee innovative per un'app mobile che aiuti le persone a gestire meglio il loro tempo libero e ridurre il senso di FOMO.",
+  musica:"Voglio creare una canzone pop elettronica con un ritmo energico, voce femminile, mood uplifting, perfetta per allenarsi in palestra."
+};
+
+// Pricing
+const PRICE_INPUT  = 3.00  / 1_000_000;
+const PRICE_OUTPUT = 15.00 / 1_000_000;
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let activeTechniques = new Set(['explicit']);
+let selectedAI       = 'claude';
+let sessionTokens    = 0;
+let sessionCost      = 0;
+let currentResults   = [null, null];
+let activeTab        = 0;
+let currentRating    = null;
+let suggestionIds    = [];
+let history          = [];
+let chatHistory      = [];
+let currentPromptForChat = '';
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+function init() {
+  loadApiKeys();
+  loadTokenStats();
+  loadHistory();
+  renderAIGrid();
+  renderTechniques();
+  restoreLastTopic();
+  renderAdaptButtons();
+
+  document.getElementById('claude-key-input').addEventListener('keydown', e => { if(e.key==='Enter') saveKey('claude'); });
+  document.getElementById('gemini-key-input').addEventListener('keydown', e => { if(e.key==='Enter') saveKey('gemini'); });
+  document.getElementById('groq-key-input').addEventListener('keydown',   e => { if(e.key==='Enter') saveKey('groq'); });
+  document.getElementById('topic-input').addEventListener('input', debounce(onTopicChange, 400));
+  document.getElementById('save-modal').addEventListener('click', e => { if(e.target===document.getElementById('save-modal')) closeSaveModal(); });
+  document.getElementById('save-name-input').addEventListener('keydown', e => { if(e.key==='Enter') confirmSave(); if(e.key==='Escape') closeSaveModal(); });
+  document.getElementById('chat-input').addEventListener('keydown', e => { if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } });
+
+  // Mostra chat
+  document.getElementById('chat-section').classList.add('visible');
+  updateCostPreview();
+}
+
+// ═══════════════════════════════════════════════════
+// AI SELECTOR
+// ═══════════════════════════════════════════════════
+function renderAIGrid() {
+  const grid = document.getElementById('ai-grid');
+  grid.innerHTML = '';
+  AI_LIST.forEach(ai => {
+    const card = document.createElement('div');
+    card.className = 'ai-card' + (ai.id === selectedAI ? ' active' : '');
+    card.innerHTML = `<span class="ai-icon">${ai.icon}</span><div class="ai-info"><div class="ai-name">${ai.name}</div><div class="ai-tip">${ai.tip}</div></div>`;
+    card.addEventListener('click', () => selectAI(ai.id));
+    grid.appendChild(card);
+  });
+}
+
+function selectAI(id) {
+  selectedAI = id;
+  renderAIGrid();
+  autoSelectTechniques();
+  renderAdaptButtons();
+  updateCostPreview();
+
+  const ai = AI_LIST.find(a => a.id === id);
+  if(ai) showToast(`${ai.icon} ${ai.name} selezionato — tecniche aggiornate`, '');
+}
+
+function autoSelectTechniques() {
+  const ai = AI_LIST.find(a => a.id === selectedAI);
+  if(!ai) return;
+  // Mantieni sempre 'explicit', aggiungi quelle consigliate per l'AI
+  activeTechniques = new Set(['explicit', ...ai.bestTechs]);
+  renderTechniques();
+  updateCostPreview();
+}
+
+function renderAdaptButtons() {
+  const bar = document.getElementById('adapt-bar');
+  const btns = document.getElementById('adapt-buttons');
+  btns.innerHTML = '';
+  AI_LIST.filter(ai => ai.id !== selectedAI).forEach(ai => {
+    const btn = document.createElement('button');
+    btn.className = 'btn-adapt';
+    btn.innerHTML = `${ai.icon} ${ai.name}`;
+    btn.onclick = () => adaptPromptFor(ai.id);
+    btns.appendChild(btn);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// API KEYS & SETTINGS
+// ═══════════════════════════════════════════════════
+let activeAPI    = 'claude';
+let keys         = { claude:'', gemini:'', groq:'' };
+
+function toggleSettings() {
+  const panel = document.getElementById('settings-panel');
+  const btn   = document.getElementById('btn-settings');
+  const isOpen = panel.classList.toggle('open');
+  btn.classList.toggle('open', isOpen);
+  btn.textContent = isOpen ? '✕ Chiudi' : '⚙ Chiavi';
+}
+
+function loadApiKeys() {
+  ['claude','gemini','groq'].forEach(api => {
+    const stored = localStorage.getItem('pf_key_'+api);
+    if(stored) {
+      keys[api] = stored;
+      const input = document.getElementById(api+'-key-input');
+      input.value = stored;
+      input.classList.add('has-key');
+      setKeyDot(api, 'ok');
+    }
+  });
+  if(keys.claude)      switchActiveAPI('claude', false);
+  else if(keys.groq)   switchActiveAPI('groq', false);
+  else if(keys.gemini) switchActiveAPI('gemini', false);
+  updateToggleUI();
+}
+
+function saveKey(api) {
+  const input = document.getElementById(api+'-key-input');
+  const val   = input.value.trim();
+  if(!val) { showToast('Inserisci la chiave prima di salvarla','err'); return; }
+
+  // Validazione formato
+  if(api==='claude' && !val.startsWith('sk-ant-')) {
+    showToast('Chiave Claude deve iniziare con sk-ant-','err');
+    setKeyDot(api,'error'); input.classList.add('key-error'); return;
+  }
+  if(api==='gemini' && !val.startsWith('AIza')) {
+    showToast('Chiave Gemini deve iniziare con AIza','err');
+    setKeyDot(api,'error'); input.classList.add('key-error'); return;
+  }
+  if(api==='groq' && !val.startsWith('gsk_')) {
+    showToast('Chiave Groq deve iniziare con gsk_','err');
+    setKeyDot(api,'error'); input.classList.add('key-error'); return;
+  }
+
+  localStorage.setItem('pf_key_'+api, val);
+  keys[api] = val;
+  input.classList.add('has-key'); input.classList.remove('key-error');
+  document.getElementById(api+'-forget').classList.add('visible');
+  setKeyDot(api,'ok');
+  switchActiveAPI(api, false);
+  updateToggleUI();
+  showToast((api==='claude'?'🟠 Claude':'🔵 Gemini')+' — chiave salvata ✓','ok');
+}
+
+function forgetKey(api) {
+  localStorage.removeItem('pf_key_'+api);
+  keys[api] = '';
+  const input = document.getElementById(api+'-key-input');
+  input.value=''; input.classList.remove('has-key','key-error');
+  document.getElementById(api+'-forget').classList.remove('visible');
+  setKeyDot(api,'');
+  // Switcha all'altro se disponibile
+  const other = api==='claude'?'gemini':'claude';
+  if(keys[other]) switchActiveAPI(other, false);
+  updateToggleUI();
+  showToast('Chiave rimossa','');
+}
+
+function setKeyDot(api, state) {
+  const dot    = document.getElementById(api+'-dot');
+  const label  = document.getElementById(api+'-status');
+  dot.className = 'key-dot'+(state?' '+state:'');
+  label.textContent = state==='ok'?'✓ Salvata' : state==='error'?'✗ Errore' : 'Non configurato';
+}
+
+function switchActiveAPI(api, showToastMsg=true) {
+  if(api==='gemini' && !keys.gemini && !document.getElementById('gemini-key-input').value.trim()) {
+    showToast('Inserisci prima la chiave Gemini in ⚙ Chiavi','warn');
+    document.getElementById('settings-panel').classList.add('open');
+    document.getElementById('btn-settings').classList.add('open');
+    document.getElementById('btn-settings').textContent='✕ Chiudi';
+    return;
+  }
+  if(api==='groq' && !keys.groq && !document.getElementById('groq-key-input').value.trim()) {
+    showToast('Inserisci prima la chiave Groq in ⚙ Chiavi','warn');
+    document.getElementById('settings-panel').classList.add('open');
+    document.getElementById('btn-settings').classList.add('open');
+    document.getElementById('btn-settings').textContent='✕ Chiudi';
+    return;
+  }
+  activeAPI = api;
+  updateToggleUI();
+  if(showToastMsg) {
+    const labels = {claude:'🟠 Claude attivo', gemini:'🔵 Gemini attivo', groq:'⚡ Groq attivo (gratis)'};
+    showToast(labels[api]||api,'');
+  }
+  updateCostPreview();
+}
+
+function updateToggleUI() {
+  ['claude','gemini','groq'].forEach(api => {
+    const btn = document.getElementById('toggle-'+api);
+    if(!btn) return;
+    btn.classList.toggle('active', activeAPI===api);
+    btn.style.opacity = (keys[api] || activeAPI===api) ? '1' : '0.45';
+  });
+}
+
+function toggleVis(inputId) {
+  const input = document.getElementById(inputId);
+  input.type = input.type==='password'?'text':'password';
+}
+
+// Mantieni compatibilità con vecchie chiamate
+function loadApiKey()  { loadApiKeys(); }
+function saveApiKey()  { saveKey('claude'); }
+function forgetApiKey(){ forgetKey('claude'); }
+function toggleKeyVis(){ toggleVis('claude-key-input'); }
+function setKeyStatus(state,text){
+  setKeyDot('claude', state==='ok'?'ok':state==='error'?'error':'');
+}
+
+// ═══════════════════════════════════════════════════
+// TOKEN STATS
+// ═══════════════════════════════════════════════════
+function loadTokenStats() {
+  const s = JSON.parse(localStorage.getItem('pf_token_stats')||'{"total":0,"cost":0,"count":0}');
+  updateTokenDisplay(s.total, s.cost, s.count);
+}
+function addTokens(inp, out) {
+  const cost = inp*PRICE_INPUT + out*PRICE_OUTPUT;
+  const total = inp+out;
+  sessionTokens += total; sessionCost += cost;
+  const s = JSON.parse(localStorage.getItem('pf_token_stats')||'{"total":0,"cost":0,"count":0}');
+  s.total+=total; s.cost+=cost; s.count+=1;
+  localStorage.setItem('pf_token_stats', JSON.stringify(s));
+  updateTokenDisplay(s.total, s.cost, s.count);
+}
+function updateTokenDisplay(total, totalCost, count) {
+  document.getElementById('tok-session').textContent  = fmtNum(sessionTokens);
+  document.getElementById('tok-session-cost').textContent = '$'+sessionCost.toFixed(4);
+  document.getElementById('tok-total').textContent    = fmtNum(total);
+  document.getElementById('tok-total-cost').textContent  = '$'+totalCost.toFixed(4);
+  document.getElementById('tok-count').textContent    = count;
+}
+function fmtNum(n) { return n>=1000?(n/1000).toFixed(1)+'k':n.toString(); }
+
+function updateCostPreview() {
+  const techCount = activeTechniques.size;
+  const estIn  = 400 + techCount*70;
+  const estOut = 380;
+  const ai = AI_LIST.find(a => a.id === selectedAI);
+  if(activeAPI==='gemini') {
+    document.getElementById('cost-preview-val').textContent = 'Gratis*';
+    document.getElementById('cost-note').textContent = `~${estIn+estOut} token · Gemini 1.5 Flash`;
+  } else if(activeAPI==='groq') {
+    document.getElementById('cost-preview-val').textContent = 'Gratis 🎉';
+    document.getElementById('cost-note').textContent = `~${estIn+estOut} token · Llama 3.3 70B`;
+  } else {
+    const est = estIn*PRICE_INPUT + estOut*PRICE_OUTPUT;
+    document.getElementById('cost-preview-val').textContent = '~$'+est.toFixed(4);
+    document.getElementById('cost-note').textContent = `~${estIn+estOut} token · ${ai?.name||'Claude'}`;
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// TECNICHE
+// ═══════════════════════════════════════════════════
+function renderTechniques() {
+  const grid = document.getElementById('techniques-grid');
+  grid.innerHTML = '';
+  const ai = AI_LIST.find(a => a.id === selectedAI);
+
+  TECHNIQUES.forEach(t => {
+    const isActive    = t.alwaysOn || activeTechniques.has(t.id);
+    const isSuggested = ai && ai.bestTechs.includes(t.id) && !isActive;
+    const card = document.createElement('div');
+    card.className = 'technique-card'+(isActive?' active':'')+(isSuggested?' suggested':'');
+    card.dataset.id = t.id;
+    if(t.alwaysOn) card.style.opacity='0.65';
+
+    const aiNote = ai && t.aiNote && t.aiNote[ai.id] ? `<div class="tc-ai-badge">${ai.icon} ${t.aiNote[ai.id]}</div>` : '';
+
+    card.innerHTML = `
+      <div class="tc-top">
+        <span class="tc-name">${t.name}</span>
+        <span class="tc-check">✓</span>
+        <button class="tc-expand" onclick="toggleExample(event,'${t.id}')" title="Vedi esempio">···</button>
+      </div>
+      <div class="tc-desc">${t.desc}</div>
+      ${aiNote}
+      <div class="tc-example" id="ex-${t.id}"><strong>Esempio pratico</strong>${escHtml(t.example)}</div>
+    `;
+    if(!t.alwaysOn) card.addEventListener('click', e => {
+      if(e.target.classList.contains('tc-expand')) return;
+      toggleTechnique(t.id, card);
+    });
+    grid.appendChild(card);
+  });
+}
+
+function toggleTechnique(id, card) {
+  if(activeTechniques.has(id)) { activeTechniques.delete(id); card.classList.remove('active'); }
+  else                         { activeTechniques.add(id);    card.classList.add('active'); }
+  updateCostPreview();
+}
+
+function toggleExample(e, id) {
+  e.stopPropagation();
+  document.getElementById('ex-'+id).classList.toggle('open');
+}
+
+// ═══════════════════════════════════════════════════
+// SUGGERIMENTI DA TESTO
+// ═══════════════════════════════════════════════════
+function onTopicChange() {
+  const text = document.getElementById('topic-input').value.toLowerCase();
+  saveLastTopic(document.getElementById('topic-input').value);
+  if(!text||text.length<5) { hideSuggestions(); return; }
+
+  let matched = new Set();
+  for(const [pat, ids] of Object.entries(KEYWORD_SUGGESTIONS)) {
+    if(pat.split('|').some(w => text.includes(w))) ids.forEach(id => { if(!activeTechniques.has(id)) matched.add(id); });
+  }
+  const newSugg = [...matched].slice(0,4);
+  if(!newSugg.length) { hideSuggestions(); return; }
+
+  suggestionIds = newSugg;
+  const container = document.getElementById('tech-suggestions');
+  container.innerHTML = '<span class="suggestion-label">Suggeriti:</span>';
+  newSugg.forEach(id => {
+    const t = TECHNIQUES.find(t=>t.id===id);
+    if(!t) return;
+    const chip = document.createElement('span');
+    chip.className = 'suggestion-chip';
+    chip.textContent = t.name;
+    container.appendChild(chip);
+  });
+  container.classList.add('visible');
+  document.getElementById('suggest-badge').classList.add('visible');
+}
+
+function applySuggestions() {
+  suggestionIds.forEach(id => activeTechniques.add(id));
+  renderTechniques();
+  hideSuggestions();
+  updateCostPreview();
+  showToast('Tecniche applicate','ok');
+}
+
+function hideSuggestions() {
+  document.getElementById('tech-suggestions').classList.remove('visible');
+  document.getElementById('suggest-badge').classList.remove('visible');
+  suggestionIds = [];
+}
+
+function saveLastTopic(text) { if(text) localStorage.setItem('pf_last_topic', text); }
+function restoreLastTopic() {
+  const last = localStorage.getItem('pf_last_topic');
+  if(last) document.getElementById('topic-input').value = last;
+}
+function setTemplate(key) {
+  document.getElementById('topic-input').value = TEMPLATES[key]||'';
+  // Auto-seleziona AI giusta per Suno
+  if(key==='musica' && selectedAI!=='suno') { selectAI('suno'); }
+  onTopicChange();
+}
+
+// ═══════════════════════════════════════════════════
+// GENERATE
+// ═══════════════════════════════════════════════════
+function buildSystemPrompt(aiId, variant='A') {
+  const ai   = AI_LIST.find(a=>a.id===aiId)||AI_LIST[0];
+  const selectedTechs = TECHNIQUES.filter(t=>t.alwaysOn||activeTechniques.has(t.id));
+  const techNames = selectedTechs.map(t=>t.name).join(', ');
+  const tone   = document.getElementById('opt-tone').value;
+  const length = document.getElementById('opt-length').value;
+  const lang   = document.getElementById('opt-lang').value;
+
+  const langInstr = lang==='auto'
+    ? (ai.langPref==='en' ? "Genera il prompt in inglese (l'AI selezionata risponde meglio in inglese). Aggiungi 'Respond in Italian.' alla fine." : "Scegli la lingua più efficace per il task. Se inglese, aggiungi 'Respond in Italian.' alla fine.")
+    : lang==='inglese' ? "Genera il prompt in inglese e aggiungi alla fine: 'Respond in Italian.'"
+    : "Genera il prompt in italiano.";
+
+  return `Sei un esperto di prompt engineering. Genera un prompt ottimizzato per ${ai.name}.
+
+Contesto AI di destinazione: ${ai.systemNote}
+
+Tecniche da applicare: ${techNames}
+${variant==='B'?'VARIANTE B: usa approccio e struttura alternativi rispetto alla variante A.':''}
+
+Regole di applicazione:
+- Tag XML → usali solo se appropriati per ${ai.name}
+- Ruolo → formula il ruolo nel modo più efficace per ${ai.name}
+- Chain-of-Thought → usa la formula migliore per ${ai.name}
+- Formato → specifica formato output ottimale per ${ai.name}
+- Esempi → includi 1-2 esempi concreti e pertinenti
+- Criteri di successo → definisci risposta eccellente per ${ai.name}
+- Azione proattiva → formula diretta e imperativa
+- Tono: ${tone} · Lunghezza attesa: ${length}
+- ${langInstr}
+
+Restituisci SOLO il prompt pronto, nessuna spiegazione o commento.`;
+}
+
+async function callAPI(systemPrompt, userMsg, apiKey) {
+  // ── GEMINI ──
+  if(activeAPI === 'gemini') {
+    const geminiKey = apiKey || keys.gemini || document.getElementById('gemini-key-input').value.trim();
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        contents:[{ parts:[{ text: systemPrompt + '\n\n' + userMsg }] }],
+        generationConfig:{ maxOutputTokens:1000, temperature:0.7 }
+      })
+    });
+    if(!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      if(res.status===400||res.status===403) { setKeyDot('gemini','error'); showToast('Chiave Gemini non valida','err'); }
+      else if(res.status===429) showToast('Limite Gemini raggiunto. Attendi.','warn');
+      throw new Error(err?.error?.message||`HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const inputEst  = Math.round((systemPrompt.length + userMsg.length) / 4);
+    const outputEst = Math.round(text.length / 4);
+    return { content:[{text}], usage:{ input_tokens: inputEst, output_tokens: outputEst } };
+  }
+
+  // ── GROQ ──
+  if(activeAPI === 'groq') {
+    const groqKey = apiKey || keys.groq || document.getElementById('groq-key-input').value.trim();
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 1000,
+        temperature: 0.7,
+        messages:[
+          {role:'system', content: systemPrompt},
+          {role:'user',   content: userMsg}
+        ]
+      })
+    });
+    if(!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      if(res.status===401) { setKeyDot('groq','error'); showToast('Chiave Groq non valida','err'); }
+      else if(res.status===429) showToast('Limite Groq raggiunto. Attendi un momento.','warn');
+      throw new Error(err?.error?.message||`HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content || '';
+    return {
+      content:[{text}],
+      usage:{ input_tokens: data.usage?.prompt_tokens||0, output_tokens: data.usage?.completion_tokens||0 }
+    };
+  }
+
+  // ── CLAUDE ──
+  const claudeKey = apiKey || keys.claude || document.getElementById('claude-key-input').value.trim();
+  const headers = {
+    'Content-Type':'application/json',
+    'x-api-key': claudeKey,
+    'anthropic-version':'2023-06-01'
+  };
+  if(window.location.hostname.includes('claude.ai')) headers['anthropic-dangerous-direct-browser-access']='true';
+  const res = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST', headers,
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:1000,
+      system:systemPrompt,
+      messages:[{role:'user',content:userMsg}]
+    })
+  });
+  if(!res.ok) {
+    const err = await res.json().catch(()=>({}));
+    if(res.status===401){ setKeyDot('claude','error'); showToast('Chiave Claude non valida','err'); }
+    else if(res.status===429) showToast('Limite API raggiunto. Attendi.','warn');
+    else if(res.status===403){ setKeyDot('claude','error'); showToast('Accesso negato','err'); }
+    throw new Error(err?.error?.message||`HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function generatePrompt(dual=false) {
+  const topic = document.getElementById('topic-input').value.trim();
+  if(!topic) {
+    const ta = document.getElementById('topic-input');
+    ta.focus(); ta.style.borderColor='rgba(200,100,100,.5)';
+    setTimeout(()=>ta.style.borderColor='',1500);
+    showToast('Descrivi prima il tuo obiettivo','err'); return;
+  }
+  const apiKey = activeAPI==='gemini'
+    ? (document.getElementById('gemini-key-input').value.trim() || keys.gemini)
+    : activeAPI==='groq'
+    ? (document.getElementById('groq-key-input').value.trim() || keys.groq)
+    : (document.getElementById('claude-key-input').value.trim() || keys.claude);
+  if(!apiKey){ showToast('Inserisci la chiave API in ⚙ Chiavi','err'); document.getElementById('settings-panel').classList.add('open'); document.getElementById('btn-settings').classList.add('open'); document.getElementById('btn-settings').textContent='✕ Chiudi'; return; }
+
+  document.getElementById('btn-generate').disabled=true;
+  document.getElementById('btn-variants').disabled=true;
+
+  const outputSection = document.getElementById('output-section');
+  outputSection.classList.add('visible');
+  document.getElementById('loader').classList.add('active');
+  document.getElementById('prompt-result').innerHTML='';
+  document.getElementById('output-footer').style.display='none';
+  document.getElementById('lang-badge').style.display='none';
+  document.getElementById('adapt-bar').classList.remove('visible');
+  document.getElementById('output-tabs').classList.remove('visible');
+  currentResults=[null,null]; currentRating=null;
+  document.getElementById('btn-up').className='btn-rate';
+  document.getElementById('btn-down').className='btn-rate';
+
+  const selectedTechs = TECHNIQUES.filter(t=>t.alwaysOn||activeTechniques.has(t.id));
+  const userMsg = `Genera un prompt ottimizzato per questo obiettivo:\n\n${topic}`;
+
+  try {
+    if(dual) {
+      const [dA,dB] = await Promise.all([
+        callAPI(buildSystemPrompt(selectedAI,'A'), userMsg, apiKey),
+        callAPI(buildSystemPrompt(selectedAI,'B'), userMsg, apiKey)
+      ]);
+      currentResults[0]=dA.content?.[0]?.text||'';
+      currentResults[1]=dB.content?.[0]?.text||'';
+      addTokens((dA.usage?.input_tokens||0)+(dB.usage?.input_tokens||0),(dA.usage?.output_tokens||0)+(dB.usage?.output_tokens||0));
+      document.getElementById('output-tabs').classList.add('visible');
+      activeTab=0; showTabResult(0,selectedTechs);
+    } else {
+      const data = await callAPI(buildSystemPrompt(selectedAI,'A'), userMsg, apiKey);
+      currentResults[0]=data.content?.[0]?.text||'';
+      addTokens(data.usage?.input_tokens||0, data.usage?.output_tokens||0);
+      showTabResult(0,selectedTechs);
+    }
+
+    // Aggiorna chat prompt bar
+    currentPromptForChat = currentResults[activeTab]||'';
+    const bar = document.getElementById('chat-prompt-bar');
+    const prev = document.getElementById('chat-prompt-preview');
+    if(currentPromptForChat){ bar.classList.add('visible'); prev.textContent=currentPromptForChat.substring(0,120)+'...'; }
+
+    outputSection.scrollIntoView({behavior:'smooth',block:'nearest'});
+
+  } catch(err) {
+    document.getElementById('loader').classList.remove('active');
+    const msg=err.message||'';
+    document.getElementById('prompt-result').textContent =
+      msg.includes('401')||msg.toLowerCase().includes('invalid')
+        ? '⚠ Chiave API non valida. Verifica sk-ant-...'
+        : `⚠ Errore: ${msg||'Connessione fallita. Riprova.'}`;
+  }
+
+  document.getElementById('btn-generate').disabled=false;
+  document.getElementById('btn-variants').disabled=false;
+}
+
+function showTabResult(idx, selectedTechs) {
+  document.getElementById('loader').classList.remove('active');
+  activeTab=idx;
+  const result=currentResults[idx];
+  if(!result) return;
+
+  document.querySelectorAll('.output-tab').forEach((tab,i)=>tab.classList.toggle('active',i===idx));
+  document.getElementById('prompt-result').innerHTML=highlightXML(result);
+
+  const isEn=/\b(you|the|please|your|respond|provide|analyze|write|create|act as)\b/i.test(result.substring(0,250));
+  const badge=document.getElementById('lang-badge');
+  badge.className='lang-badge'+(isEn?' en':' it');
+  badge.textContent=isEn?'EN → IT':'IT';
+  badge.style.display='inline';
+
+  const techs = selectedTechs||TECHNIQUES.filter(t=>t.alwaysOn||activeTechniques.has(t.id));
+  document.getElementById('techniques-used').innerHTML=techs.map(t=>`<span class="tech-tag">${t.name}</span>`).join('');
+  document.getElementById('output-footer').style.display='flex';
+  document.getElementById('adapt-bar').classList.add('visible');
+
+  const copyBtn=document.getElementById('btn-copy');
+  copyBtn.textContent='Copia'; copyBtn.classList.remove('copied');
+}
+
+function switchTab(idx) {
+  if(!currentResults[idx]) return;
+  showTabResult(idx);
+  currentPromptForChat=currentResults[idx]||'';
+  document.getElementById('chat-prompt-preview').textContent=currentPromptForChat.substring(0,120)+'...';
+}
+
+// ═══════════════════════════════════════════════════
+// ADATTA PER ALTRA AI
+// ═══════════════════════════════════════════════════
+async function adaptPromptFor(aiId) {
+  const currentPrompt = currentResults[activeTab];
+  if(!currentPrompt){ showToast('Genera prima un prompt','err'); return; }
+  const apiKey = activeAPI==="gemini"
+    ? (document.getElementById("gemini-key-input").value.trim() || keys.gemini)
+    : activeAPI==="groq"
+    ? (document.getElementById("groq-key-input").value.trim() || keys.groq)
+    : (document.getElementById("claude-key-input").value.trim() || keys.claude);
+  if(!apiKey){ showToast("Inserisci la chiave API in u2699 Chiavi","err"); return; }
+
+  const targetAI = AI_LIST.find(a=>a.id===aiId);
+  const btn = document.getElementById('adapt-buttons').querySelectorAll('.btn-adapt');
+  btn.forEach(b=>{ if(b.textContent.includes(targetAI.name)) b.classList.add('adapting'); });
+
+  const sys = `Sei un esperto di prompt engineering. Hai un prompt ottimizzato per un'AI e devi riadattarlo per ${targetAI.name}.
+${targetAI.systemNote}
+Mantieni l'obiettivo originale ma cambia struttura, sintassi e tecniche per massimizzare l'efficacia su ${targetAI.name}.
+Restituisci SOLO il prompt adattato, senza spiegazioni.`;
+
+  try {
+    const data = await callAPI(sys, `Adatta questo prompt per ${targetAI.name}:\n\n${currentPrompt}`, apiKey);
+    const adapted = data.content?.[0]?.text||'';
+    addTokens(data.usage?.input_tokens||0, data.usage?.output_tokens||0);
+
+    // Mostra in output
+    currentResults[activeTab]=adapted;
+    document.getElementById('prompt-result').innerHTML=highlightXML(adapted);
+    currentPromptForChat=adapted;
+    document.getElementById('chat-prompt-preview').textContent=adapted.substring(0,120)+'...';
+
+    showToast(`Adattato per ${targetAI.icon} ${targetAI.name}`,'ok');
+  } catch(err) {
+    showToast('Errore nell\'adattamento','err');
+  }
+
+  btn.forEach(b=>b.classList.remove('adapting'));
+}
+
+// ═══════════════════════════════════════════════════
+// RATING
+// ═══════════════════════════════════════════════════
+function ratePrompt(val) {
+  currentRating=val;
+  document.getElementById('btn-up').className  ='btn-rate'+(val==='up'  ?' rated-up'  :'');
+  document.getElementById('btn-down').className='btn-rate'+(val==='down'?' rated-down':'');
+  showToast(val==='up'?'Ottimo, feedback salvato ✓':'Feedback salvato',val==='up'?'ok':'');
+}
+
+// ═══════════════════════════════════════════════════
+// CHAT INTEGRATA
+// ═══════════════════════════════════════════════════
+function usePromptInChat() {
+  if(!currentPromptForChat) return;
+  document.getElementById('chat-input').value = currentPromptForChat;
+  document.getElementById('chat-input').focus();
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if(!msg) return;
+  const apiKey = activeAPI==='gemini'
+    ? (document.getElementById('gemini-key-input').value.trim() || keys.gemini)
+    : activeAPI==='groq'
+    ? (document.getElementById('groq-key-input').value.trim() || keys.groq)
+    : (document.getElementById('claude-key-input').value.trim() || keys.claude);
+  if(!apiKey){ showToast('Inserisci la chiave API in u2699 Chiavi','err'); return; }
+
+  input.value='';
+  document.getElementById('btn-chat-send').disabled=true;
+
+  // Rimuovi empty state
+  const messagesEl = document.getElementById('chat-messages');
+  const empty = messagesEl.querySelector('.chat-empty');
+  if(empty) empty.remove();
+
+  // Aggiungi messaggio utente
+  chatHistory.push({role:'user',content:msg});
+  appendChatMsg('user', msg);
+
+  // Bubble loading
+  const loadingId='chat-loading-'+Date.now();
+  const loadDiv=document.createElement('div');
+  loadDiv.className='chat-msg assistant'; loadDiv.id=loadingId;
+  loadDiv.innerHTML='<div class="msg-bubble"><span style="color:var(--text-muted);font-size:11px;letter-spacing:1px">...</span></div>';
+  messagesEl.appendChild(loadDiv);
+  messagesEl.scrollTop=messagesEl.scrollHeight;
+
+  try {
+    const data = await callAPI('Sei un assistente utile. Rispondi in modo chiaro e conciso.', chatHistory.map(m=>`${m.role==='user'?'Utente':'Assistente'}: ${m.content}`).join('\n'), apiKey);
+    const reply = data.content?.[0]?.text||'Nessuna risposta.';
+    document.getElementById(loadingId)?.remove();
+    chatHistory.push({role:'assistant',content:reply});
+    appendChatMsg('assistant',reply);
+    addTokens(data.usage?.input_tokens||0, data.usage?.output_tokens||0);
+
+  } catch(err) {
+    document.getElementById(loadingId)?.remove();
+    appendChatMsg('assistant','⚠ Errore: '+( err.message||'Connessione fallita.'));
+  }
+
+  document.getElementById('btn-chat-send').disabled=false;
+  input.focus();
+}
+
+function appendChatMsg(role, text) {
+  const el=document.createElement('div');
+  el.className='chat-msg '+role;
+  const time=new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+  el.innerHTML=`<div class="msg-bubble">${role==='assistant'?highlightXML(text):escHtml(text)}</div><div class="msg-meta">${time}</div>`;
+  const msgs=document.getElementById('chat-messages');
+  msgs.appendChild(el);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function clearChat() {
+  chatHistory=[];
+  const msgs=document.getElementById('chat-messages');
+  msgs.innerHTML='<div class="chat-empty">Nuova chat pronta. Scrivi un messaggio o usa il prompt generato.</div>';
+}
+
+// ═══════════════════════════════════════════════════
+// SAVE MODAL
+// ═══════════════════════════════════════════════════
+function openSaveModal() {
+  if(!currentResults[activeTab]){ showToast('Genera prima un prompt','err'); return; }
+  const input=document.getElementById('save-name-input');
+  const topic=document.getElementById('topic-input').value.trim();
+  const ai=AI_LIST.find(a=>a.id===selectedAI);
+  input.value=(ai?ai.name+' — ':'')+topic.substring(0,40);
+  document.getElementById('save-modal').classList.add('open');
+  setTimeout(()=>{input.focus();input.select();},100);
+}
+function closeSaveModal() { document.getElementById('save-modal').classList.remove('open'); }
+function confirmSave() {
+  const name=document.getElementById('save-name-input').value.trim();
+  if(!name){ document.getElementById('save-name-input').focus(); return; }
+  const item={
+    id:Date.now(), name,
+    prompt:currentResults[activeTab],
+    topic:document.getElementById('topic-input').value.trim(),
+    ai:selectedAI,
+    tone:document.getElementById('opt-tone').value,
+    length:document.getElementById('opt-length').value,
+    lang:document.getElementById('opt-lang').value,
+    techniques:[...activeTechniques],
+    rating:currentRating,
+    date:new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'short'})
+  };
+  history.unshift(item);
+  if(history.length>50) history=history.slice(0,50);
+  localStorage.setItem('pf_history',JSON.stringify(history));
+  closeSaveModal(); renderHistory();
+  showToast('Prompt salvato ✓','ok');
+}
+
+// ═══════════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════════
+function loadHistory() { history=JSON.parse(localStorage.getItem('pf_history')||'[]'); renderHistory(); }
+function renderHistory() {
+  const section=document.getElementById('history-section');
+  const list=document.getElementById('history-list');
+  if(!history.length){ section.classList.remove('visible'); return; }
+  section.classList.add('visible');
+  list.innerHTML='';
+  history.forEach(item=>{
+    const ai=AI_LIST.find(a=>a.id===item.ai);
+    const ratingIcon=item.rating==='up'?'👍':item.rating==='down'?'👎':'';
+    const el=document.createElement('div');
+    el.className='history-item';
+    el.innerHTML=`
+      <div class="history-item-header">
+        <span class="history-item-name">${escHtml(item.name)}</span>
+        <span>${ratingIcon}</span>
+        <span class="history-item-date">${item.date}</span>
+      </div>
+      <div class="history-item-preview">${escHtml(item.prompt.substring(0,100))}...</div>
+      <div class="history-item-meta">
+        ${ai?`<span class="history-meta-tag">${ai.icon} ${ai.name}</span>`:''}
+        <span class="history-meta-tag">${item.tone}</span>
+        <span class="history-meta-tag">${item.techniques?.length||0} tecniche</span>
+      </div>
+      <div class="history-item-actions">
+        <button class="btn-hist-action load" onclick="loadFromHistory(${item.id})">Carica e modifica</button>
+        <button class="btn-hist-action" onclick="copyFromHistory(${item.id})">Copia</button>
+        <button class="btn-hist-action" onclick="deleteFromHistory(${item.id})" style="color:var(--danger);border-color:rgba(224,110,110,.3)">✕</button>
+      </div>`;
+    list.appendChild(el);
+  });
+}
+function loadFromHistory(id) {
+  const item=history.find(h=>h.id===id);
+  if(!item) return;
+  document.getElementById('topic-input').value=item.topic;
+  document.getElementById('opt-tone').value=item.tone;
+  document.getElementById('opt-length').value=item.length;
+  document.getElementById('opt-lang').value=item.lang||'auto';
+  if(item.ai){ selectedAI=item.ai; renderAIGrid(); renderAdaptButtons(); }
+  if(item.techniques){ activeTechniques=new Set(item.techniques); renderTechniques(); }
+  currentResults[0]=item.prompt;
+  document.getElementById('output-section').classList.add('visible');
+  document.getElementById('output-tabs').classList.remove('visible');
+  showTabResult(0);
+  currentPromptForChat=item.prompt;
+  document.getElementById('chat-prompt-bar').classList.add('visible');
+  document.getElementById('chat-prompt-preview').textContent=item.prompt.substring(0,120)+'...';
+  updateCostPreview();
+  window.scrollTo({top:0,behavior:'smooth'});
+  showToast('Caricato — modifica e rigenera','ok');
+}
+function copyFromHistory(id) {
+  const item=history.find(h=>h.id===id);
+  if(item) navigator.clipboard.writeText(item.prompt).then(()=>showToast('Copiato ✓','ok'));
+}
+function deleteFromHistory(id) {
+  history=history.filter(h=>h.id!==id);
+  localStorage.setItem('pf_history',JSON.stringify(history));
+  renderHistory();
+}
+function clearHistory() {
+  if(!confirm('Vuoi cancellare tutti i prompt salvati?')) return;
+  history=[]; localStorage.removeItem('pf_history');
+  renderHistory(); showToast('Cronologia svuotata','');
+}
+
+// ═══════════════════════════════════════════════════
+// COPY / HELPERS
+// ═══════════════════════════════════════════════════
+function copyPrompt() {
+  const text=currentResults[activeTab]||document.getElementById('prompt-result').textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.getElementById('btn-copy');
+    btn.textContent='✓ Copiato!'; btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='Copia';btn.classList.remove('copied');},2000);
+  });
+}
+function highlightXML(text) {
+  let e=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return e.replace(/&lt;(\/?[\w_-]+)&gt;/g,'<span class="xml-tag">&lt;$1&gt;</span>');
+}
+function escHtml(str) { return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+let toastTimer;
+function showToast(msg,type='') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='show'+(type?' '+type:'');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{t.className='';},2800);
+}
+function debounce(fn,ms){ let t; return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);} }
+
+init();
+</script>
+</body>
+</html>
